@@ -12,7 +12,7 @@ class IniFile
 
   # :stopdoc:
   class Error < StandardError; end
-  VERSION = '1.1.0'
+  VERSION = '1.8.23.jm'
   # :startdoc:
 
   #
