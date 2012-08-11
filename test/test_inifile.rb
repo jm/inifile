@@ -13,7 +13,7 @@ require 'test/unit'
 class TestIniFile < Test::Unit::TestCase
 
   def setup
-    @ini_file = IniFile.new 'test/data/good.ini'
+    @ini_file = IniFile.load 'test/data/good.ini'
     @contents = [
       ['section_one', 'one', '1'],
       ['section_one', 'two', '2'],
@@ -128,7 +128,7 @@ class TestIniFile < Test::Unit::TestCase
     assert_equal @contents, ary.sort
 
     ary = []
-    IniFile.new('temp.ini').each {|*args| ary << args}
+    IniFile.new('').each {|*args| ary << args}
     assert_equal [], ary
   end
 
@@ -144,7 +144,7 @@ class TestIniFile < Test::Unit::TestCase
     assert_equal expected, ary.sort
 
     ary = []
-    IniFile.new('temp.ini').each_section {|section| ary << section}
+    IniFile.new('').each_section {|section| ary << section}
     assert_equal [], ary
   end
 
@@ -175,7 +175,7 @@ class TestIniFile < Test::Unit::TestCase
     assert_equal true,  @ini_file.has_section?(:section_two)
     assert_equal false, @ini_file.has_section?(nil)
 
-    ini_file = IniFile.new 'temp.ini'
+    ini_file = IniFile.new ''
     assert_equal false, ini_file.has_section?('section_one')
     assert_equal false, ini_file.has_section?('one')
     assert_equal false, ini_file.has_section?('two')
@@ -210,7 +210,7 @@ class TestIniFile < Test::Unit::TestCase
     assert_nil @ini_file[nil]
 
     expected = {}
-    ini_file = IniFile.new 'temp.ini'
+    ini_file = IniFile.new '', :fn => 'temp.ini'
     assert_equal expected, ini_file['section_one']
     assert_equal expected, ini_file['one']
     assert_nil ini_file[nil]
@@ -238,21 +238,21 @@ class TestIniFile < Test::Unit::TestCase
 
   def test_initialize
     # see if we can parse different style comments
-    #assert_raise(IniFile::Error) {IniFile.new 'test/data/comment.ini'}
+    #assert_raise(IniFile::Error) {IniFile.load 'test/data/comment.ini'}
 
-    ini_file = IniFile.new 'test/data/comment.ini', :comment => '#'
+    ini_file = IniFile.load 'test/data/comment.ini', :comment => '#'
     assert_equal true, ini_file.has_section?('section_one')
 
     # see if we can parse different style param separators
-    assert_raise(IniFile::Error) {IniFile.new 'test/data/param.ini'}
+    assert_raise(IniFile::Error) {IniFile.load 'test/data/param.ini'}
 
-    ini_file = IniFile.new 'test/data/param.ini', :parameter => ':'
+    ini_file = IniFile.load 'test/data/param.ini', :parameter => ':'
     assert_equal true, ini_file.has_section?('section_one')
     assert_equal '1', ini_file['section_one']['one']
     assert_equal '2', ini_file['section_one']['two']
 
     # make sure we error out on files with bad lines
-    assert_raise(IniFile::Error) {IniFile.new 'test/data/bad_1.ini'}
+    assert_raise(IniFile::Error) {IniFile.load 'test/data/bad_1.ini'}
   end
 
   def test_sections
@@ -263,7 +263,7 @@ class TestIniFile < Test::Unit::TestCase
 
     assert_equal expected, @ini_file.sections.sort
 
-    ini_file = IniFile.new 'temp.ini'
+    ini_file = IniFile.new '', :fn => 'temp.ini'
     assert_equal [], ini_file.sections
   end
 
@@ -290,7 +290,7 @@ class TestIniFile < Test::Unit::TestCase
 
     File.delete tmp if Kernel.test(?f, tmp)
 
-    ini_file = IniFile.new tmp
+    ini_file = IniFile.new '', :fn => tmp
     ini_file.save
     assert_nil Kernel.test(?s, tmp)
 
@@ -306,7 +306,7 @@ class TestIniFile < Test::Unit::TestCase
   end
 
   def test_can_add_key_to_inifile
-    ini_file = IniFile.new("test/data/tmp.ini")
+    ini_file = IniFile.load("test/data/tmp.ini")
     ini_file["new_section"] = {}
     ini_file.save
 
@@ -314,7 +314,7 @@ class TestIniFile < Test::Unit::TestCase
   end
 
   def test_adds_correct_key_to_inifile
-    ini_file = IniFile.new("test/data/tmp.ini")
+    ini_file = IniFile.load("test/data/tmp.ini")
     ini_file["foo"] = {}
     ini_file.save
 
@@ -322,7 +322,7 @@ class TestIniFile < Test::Unit::TestCase
   end
 
   def test_assigns_values_to_inifile
-    ini_file = IniFile.new("test/data/tmp.ini")
+    ini_file = IniFile.load("test/data/tmp.ini")
     ini_file["foo"] = {
       :bar => "baz"
     }
@@ -331,7 +331,7 @@ class TestIniFile < Test::Unit::TestCase
   end
 
   def test_assigns_correct_values_to_inifile
-    ini_file = IniFile.new("test/data/tmp.ini")
+    ini_file = IniFile.load("test/data/tmp.ini")
     ini_file["foo"] = {
       :one => "two"
     }
@@ -340,7 +340,7 @@ class TestIniFile < Test::Unit::TestCase
   end
 
   def test_assignment_stringifies_key
-    ini_file = IniFile.new("test/data/tmp.ini")
+    ini_file = IniFile.load("test/data/tmp.ini")
     ini_file["foo"] = {:one => :two}
     ini_file[:foo] = {}
     assert_equal ini_file["foo"], {}
@@ -397,7 +397,7 @@ class TestIniFile < Test::Unit::TestCase
 
   if RUBY_VERSION >= '1.9'
     def test_parse_encoding
-      ini_file = IniFile.new("test/data/browscap.ini", :encoding => 'ISO-8859-1')
+      ini_file = IniFile.load("test/data/browscap.ini", :encoding => 'ISO-8859-1')
       assert_equal ini_file['www.substancia.com AutoHTTPAgent (ver *)']['Browser'], "Subst\xE2ncia".force_encoding('ISO-8859-1')
     end
 
@@ -405,7 +405,7 @@ class TestIniFile < Test::Unit::TestCase
       tmp = 'test/data/tmp.ini'
       File.delete tmp if Kernel.test(?f, tmp)
 
-      @ini_file = IniFile.new(tmp, :encoding => 'UTF-8')
+      @ini_file = IniFile.new('', :fn => tmp, :encoding => 'UTF-8')
       @ini_file['testutf-8'] = {"utf-8" => "appr\u20accier"}
 
       @ini_file.save tmp

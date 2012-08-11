@@ -30,7 +30,12 @@ class IniFile
   #    :default => 'global'  Default global section name
   #
   def self.load( filename, opts = {} )
-    new(filename, opts)
+    mode = (RUBY_VERSION >= '1.9' && opts[:encoding]) ?
+     "r:#{opts[:encoding].to_s}" :
+     'r'
+    contents = File.open(filename, mode).read
+
+    new(contents, opts.merge(:fn => filename))
   end
 
   #
@@ -48,8 +53,10 @@ class IniFile
   #    :escape => true       Whether or not to escape values when reading/writing
   #    :default => 'global'  Default global section name
   #
-  def initialize( filename, opts = {} )
-    @fn = filename
+  def initialize( contents, opts = {} )
+    @contents = contents
+
+    @fn = opts[:fn]
     @comment = opts.fetch(:comment, ';#')
     @param = opts.fetch(:parameter, '=')
     @encoding = opts.fetch(:encoding, nil)
@@ -343,17 +350,11 @@ private
   # Parse the ini file contents.
   #
   def parse
-    return unless File.file?(@fn)
-
     @_current_section = nil
     @_current_param = nil
     @_current_value = nil
 
-    fd = (RUBY_VERSION >= '1.9' && @encoding) ?
-         File.open(@fn, 'r', :encoding => @encoding) :
-         File.open(@fn, 'r')
-
-    while line = fd.gets
+    @contents.split("\n").each do |line|
       line = line.chomp
 
       # we ignore comment lines and blank lines
@@ -375,7 +376,6 @@ private
 
     finish_property
   ensure
-    fd.close if defined? fd and fd
     @_current_section = nil
     @_current_param = nil
     @_current_value = nil
